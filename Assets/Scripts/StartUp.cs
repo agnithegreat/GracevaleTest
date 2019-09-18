@@ -1,5 +1,5 @@
 using DataStorage;
-using Game;
+using Presenters;
 using Tools.Config;
 using UI;
 using UnityEngine;
@@ -12,12 +12,17 @@ public class StartUp : MonoBehaviour
     private IDataStorage<Data> _dataStorage;
 
     [SerializeField]
-    private PlayerStatsPresenter[] _players;
+    private GameView _gameView;
+    private GamePresenter _gamePresenter;
+
+    [SerializeField]
+    private PlayerView[] _players;
+    private PlayerPresenter[] _presenters;
 
     [SerializeField]
     private CameraController _cameraController;
 
-    private GameLogic _game;
+    private Game.GameModel _game;
     
     private void Awake()
     {
@@ -27,45 +32,20 @@ public class StartUp : MonoBehaviour
         
         _cameraController.Init(_dataStorage.Data.cameraSettings);
 
-        _game = new GameLogic(_dataStorage.Data);
+        _game = new Game.GameModel(_dataStorage.Data);
+        _game.Init(_dataStorage.Data.settings.playersCount);
+        
+        _gamePresenter = new GamePresenter(_game, _gameView);
+        
+        _presenters = new PlayerPresenter[_players.Length];
+        for (var i = 0; i < _players.Length; i++)
+        {
+            _presenters[i] = new PlayerPresenter(_game, _game.GetPlayer(i), _players[i]);
+        }
     }
 
     private void Start()
     {
-        RestartWithBuffs();
-    }
-
-    public void AttackLeft()
-    {
-        _game.Attack(0, 1);
-        _players[0].Attack();
-    }
-    
-    public void AttackRight()
-    {
-        _game.Attack(1, 0);
-        _players[1].Attack();
-    }
-
-    public void RestartWithBuffs()
-    {
-        Restart(true);
-    }
-    
-    public void RestartWithoutBuffs()
-    {
-        Restart(false);
-    }
-
-    private void Restart(bool allowBuffs)
-    {
-        _game.Reset();
-        _game.Start(_dataStorage.Data.settings.playersCount, allowBuffs);
-        
-        for (var i = 0; i < _players.Length; i++)
-        {
-            _players[i].Reset();
-            _players[i].Init(_game.GetPlayerStats(i), _game.GetPlayerBuffs(i), _dataStorage.Data);
-        }
+        _game.Start(true);
     }
 }
